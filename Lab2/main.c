@@ -1,12 +1,10 @@
 #include "stm32l476xx.h"
 #include "SysClock.h"
-#include <time.h>
 // PA.5  <--> Green LED
 // PC.13 <--> Blue user button
 #define LED_PIN    5
 #define BUTTON_PIN 13
 // Global variable 
-int eligChange = 1; 
 
 void initTimer(void){
 	//enable clock for TIM2
@@ -103,7 +101,6 @@ GPIOC->ODR |= ((uint32_t)0x00001F1F);
 	uint32_t val2;
 	uint32_t val3;
 	uint32_t val4;
-	uint32_t valPrev;
 	
 	while(1){
 		assign(val);
@@ -123,7 +120,7 @@ GPIOC->ODR |= ((uint32_t)0x00001F1F);
 				val3 = valueMap(val>>2);
 				val4 = valueMap(val>>3);
 		}
-		
+        /*this is for dimming		
 		for(int i = 0; i < 5; i++){
 						//val is the highest pin that should be active therefore if we're in reverse the others should be to the left 
 						GPIOC->ODR = val1|val2|val3|val4;
@@ -136,9 +133,8 @@ GPIOC->ODR |= ((uint32_t)0x00001F1F);
 						GPIOC->ODR = val1;
 						delay(10);        
 		}
-		
+		*/
 		//keep previous value of val so that we can calculate 0x001 and 0x200 correctly
-		valPrev = val;
 		//update value
 		if(reverse){
 				val = val<<1;
