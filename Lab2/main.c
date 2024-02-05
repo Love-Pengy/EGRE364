@@ -1,6 +1,6 @@
 #include "stm32l476xx.h"
 #include "SysClock.h"
-
+#include <time.h>
 // PA.5  <--> Green LED
 // PC.13 <--> Blue user button
 #define LED_PIN    5
@@ -8,12 +8,72 @@
 // Global variable 
 int eligChange = 1; 
 
+void initTimer(void){
+	//enable clock for TIM2
+	RCC->APB1ENR1 |= (1<<0);
+	//set prescaler value for 1000hz (1ms)
+	TIM2->PSC = 80000 - 1;
+	//set auto reset value to max
+	TIM2->ARR = 0xFFFF;
+	//reset the counter registers 
+	TIM2->EGR |= (1<<0);
+	//reset the actual count value | this holds the amoutn of times reset
+	TIM2->CNT = 0x0;
+	//enable the timer 
+	TIM2->CR1 |= (1<<0);
+}
+//delay assuming clock is set to 80 Mhz
+void delay(int timeInMs){
+	initTimer();
+	while(TIM2->CNT < timeInMs){
+	}
+	
+}
+		
+void assign(uint32_t t){
+		//clear 0-4 and 8-12
+		GPIOC->ODR &= ((0x001F)|(0x001F<<8));
+		//assign 0-4
+		GPIOC->ODR |= t&0x001F;
+		//assign 8-12
+		GPIOC->ODR |= (t>>5)<<8;
+}
+
+uint32_t valueMap(uint32_t value){
+        switch(value){
+            case 0x200: 
+                return((1<<12));
+            case 0x100:
+                return((1<<11));
+            case 0x080:
+                return((1<<10));
+            case 0x040:
+                return((1<<9));
+            case 0x020:
+                return((1<<8));
+            case 0x10:
+                return((1<<4));
+            case 0x08:
+                return((1<<3));
+            case 0x04: 
+                return((1<<2));
+            case 0x02:
+                return((1<<1));
+            case 0x01:
+                return(1);
+            default:
+                return(0);
+        }
+    }
+
 int main(void){
 // Switch System Clock = 80 MHz
 System_Clock_Init(); 
 	
  // Enable the clock to GPIO Port C
 RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;  
+
+//set prescaler to ___
 	
 	//Program GPIOC->MODER to set the mode of Pin PC 13 as input (by default, they are analog).
 GPIOC->MODER &= ~((uint32_t)0x03FF03FF);
@@ -35,11 +95,68 @@ GPIOC->ODR &= ~((uint32_t)0x00001F1F);
 GPIOC->ODR |= ((uint32_t)0x00001F1F);
 
 
-	while(1){}
 
 
+	uint32_t val = 0x200;
+	int reverse = 0;
+	uint32_t val1;
+	uint32_t val2;
+	uint32_t val3;
+	uint32_t val4;
+	uint32_t valPrev;
 	
-	
+	while(1){
+		assign(val);
 
+		//delay(200);
+		
+		//while time in while loop is less than 200 ms
+		if(reverse){
+				val1 = valueMap(val);
+				val2 = valueMap(val<<1);
+				val3 = valueMap(val<<2);
+				val4 = valueMap(val<<3);
+		}
+		else{
+				val1 = valueMap(val);
+				val2 = valueMap(val>>1);
+				val3 = valueMap(val>>2);
+				val4 = valueMap(val>>3);
+		}
+		
+		for(int i = 0; i < 5; i++){
+						//val is the highest pin that should be active therefore if we're in reverse the others should be to the left 
+						GPIOC->ODR = val1|val2|val3|val4;
+						//need to do math to see how much this needs to be 
+						delay(10);
+						GPIOC->ODR = val1|val2|val3;
+						delay(10);
+						GPIOC->ODR = val1|val2;
+						delay(10);
+						GPIOC->ODR = val1;
+						delay(10);        
+		}
+		
+		//keep previous value of val so that we can calculate 0x001 and 0x200 correctly
+		valPrev = val;
+		//update value
+		if(reverse){
+				val = val<<1;
+		}
+		else{
+				val = val>>1;
+		}
+		
+		if(val == 0x001){
+				reverse = 1;
+		}
+		else if(val == 0x200){
+				reverse = 0;
+		}
+		
 	}
+
+}
+	
+
 
