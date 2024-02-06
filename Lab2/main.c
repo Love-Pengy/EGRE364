@@ -6,6 +6,17 @@
 #define BUTTON_PIN 13
 // Global variable 
 
+
+/* if actual timer method doesnt work use this
+//time passed is in ms
+// this is assuming that clock s 80Mhz therefore one clock is 1.25e-8
+void delay(int time){
+    for(uint32_t i = 0; i < (uint32_t)(time/(1.25e-8)); i++){
+           //eat "cycle" 
+        }
+}
+*/
+
 void initTimer(void){
 	//enable clock for TIM2
 	RCC->APB1ENR1 |= (1<<0);
