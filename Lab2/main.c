@@ -41,14 +41,14 @@ void delay(int timeInMs){
 
 void assign(uint32_t t){
     //clear 0-4 and 8-12
-    GPIOC->ODR &= ((0x001F)|(0x001F<<8));
+    GPIOC->ODR &=~ ((0x001F)|(0x001F<<8));
     //assign 0-4
-    GPIOC->ODR |= t&0x001F;
+    GPIOC->ODR |= t & 0x001F;
     //assign 8-12
     GPIOC->ODR |= (t>>5)<<8;
 }
 
-uint32_t valueMap(uint32_t value){
+uint32_t  valueMap(uint32_t value){
     switch(value){
         case 0x200: 
             return((1<<12));
@@ -75,6 +75,13 @@ uint32_t valueMap(uint32_t value){
     }
 }
 
+uint32_t val = 0x200;
+int reverse = 0;
+uint32_t val1;
+uint32_t val2;
+uint32_t val3;
+uint32_t val4;
+int i = 0;
 int main(void){
     // Switch System Clock = 80 MHz
     System_Clock_Init(); 
@@ -100,47 +107,44 @@ int main(void){
 
 
     //Finally, program the port A output data register (ODR) to set the output of Pin 5 to 1 or 0, which enables or disables the LED, respectively.
-    GPIOC->ODR &= ~((uint32_t)0x00001F1F);
-    GPIOC->ODR |= ((uint32_t)0x00001F1F);
+   // GPIOC->ODR &= ~((uint32_t)0x00001F1F);
+    //GPIOC->ODR |= ((uint32_t)0x00001F1F);
 
-    uint32_t val = 0x200;
-    int reverse = 0;
-    uint32_t val1;
-    uint32_t val2;
-    uint32_t val3;
-    uint32_t val4;
+
 
     while(1){
-        assign(val);
-
+        
         if(reverse){
-            val1 = valueMap(val);
-            val2 = valueMap(val<<1);
-            val3 = valueMap(val<<2);
-            val4 = valueMap(val<<3);
+            val1 =  (val);
+            val2 =  (val>>1);
+            val3 =  (val>>2);
+            val4 =  (val>>3);
         }
         else{
-            val1 = valueMap(val);
-            val2 = valueMap(val>>1);
-            val3 = valueMap(val>>2);
-            val4 = valueMap(val>>3);
+            val1 =  (val);
+            val2 =  (val<<1);
+            val3 =  (val<<2);
+            val4 =  (val<<3);
         }
-
-        /*this is for dimming		
-        for(int i = 0; i < 5; i++){
-                        //val is the highest pin that should be active therefore if we're in reverse the others should be to the left 
-                        GPIOC->ODR = val1|val2|val3|val4;
+				//assign(val1|val2|val3|val4);
+				//delay(100);
+				
+				
+        //this is for dimming		
+        for(i = 0;i < 3; i++){
+                        //val is the highest pin that should be active therefore if we're in reverse the others should be to the left
+                        assign(val1|val2|val3|val4);
                         //need to do math to see how much this needs to be 
-                        delay(10);
-                        GPIOC->ODR = val1|val2|val3;
-                        delay(10);
-                        GPIOC->ODR = val1|val2;
-                        delay(10);
-                        GPIOC->ODR = val1;
-                        delay(10);        
+                        delay(15);
+                        assign(val1|val2|val3);
+                        delay(20);
+                        assign(val1|val2);
+                        delay(25);
+                        assign(val1);
+                        delay(30);        
         }
 
-        */
+        
 
         //keep previous value of val so that we can calculate 0x001 and 0x200 correctly
         //update value
