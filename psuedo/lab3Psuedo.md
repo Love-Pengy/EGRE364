@@ -10,6 +10,20 @@
 + PB 9 is our SDA
 + PC 0 - 3 is our Row 1 - Row 4
 + PC 4, 10, 11, 12 are our Column 1 - 4
+
+
+```C
+// one array = {0, 1, 2, 3}
+// second aray = {4, 10, 11, 12}
+
+//to create mask for the pins that are needed 
+for(int i = 0; i < len(one array); i++){
+    uint16_t mask |= 1<<one array[i];
+}
+
+```
+
+
 ```C 
 //Display a string
     char message[64] = "ABCDEFGHIJK";
