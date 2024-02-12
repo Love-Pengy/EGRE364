@@ -82,6 +82,7 @@ uint32_t val2;
 uint32_t val3;
 uint32_t val4;
 int i = 0;
+
 int main(void){
     // Switch System Clock = 80 MHz
     System_Clock_Init(); 
