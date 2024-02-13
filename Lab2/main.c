@@ -41,7 +41,7 @@ void delay(int timeInMs){
 
 void assign(uint32_t t){
     //clear 0-4 and 8-12
-    GPIOC->ODR &=~ ((0x001F)|(0x001F<<8));
+    GPIOC->ODR &=~((0x001F)|(0x001F<<8));
     //assign 0-4
     GPIOC->ODR |= t & 0x001F;
     //assign 8-12
@@ -82,6 +82,7 @@ uint32_t val2;
 uint32_t val3;
 uint32_t val4;
 int i = 0;
+int k = 0;
 int main(void){
     // Switch System Clock = 80 MHz
     System_Clock_Init(); 
@@ -112,8 +113,7 @@ int main(void){
 
 
 
-    while(1){
-        
+    while(1){				
         if(reverse){
             val1 =  (val);
             val2 =  (val>>1);
@@ -125,10 +125,7 @@ int main(void){
             val2 =  (val<<1);
             val3 =  (val<<2);
             val4 =  (val<<3);
-        }
-				//assign(val1|val2|val3|val4);
-				//delay(100);
-				
+        }	
 				
         //this is for dimming		
         for(i = 0;i < 3; i++){
@@ -144,8 +141,7 @@ int main(void){
                         delay(30);        
         }
 
-        
-
+        k++;
         //keep previous value of val so that we can calculate 0x001 and 0x200 correctly
         //update value
         if(reverse){
@@ -154,16 +150,13 @@ int main(void){
         else{
             val = val>>1;
         }
-
         if(val == 0x001){
             reverse = 1;
         }
         else if(val == 0x200){
             reverse = 0;
         }
-
     }
-
 }
 
 
