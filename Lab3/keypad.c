@@ -40,7 +40,7 @@ unsigned char keypad_scan(void){
 	unsigned char key = 0xFF;
 	int colPressed = 0;
 	
-	uint32_t inputMask = 0;
+	volatile uint32_t inputMask = 0;
 	uint32_t outputMask = 0;
 	
 	for(i = 0; i < 4; i++){
@@ -70,6 +70,7 @@ unsigned char keypad_scan(void){
 		if((GPIOC->ODR & (1<<rows[i])) == 0){
 			key = key_mapping[i][colPressed];
 		}
+		delay(20);
 		
 	}
 	return(key);
