@@ -14,6 +14,7 @@ int main(void){
 	int counter = 0;
 	char oneMessage;
 	char temp; 
+	char last; 
 	System_Clock_Init(); // Switch System Clock = 80 MHz
 	I2C_GPIO_init();
 	I2C_Initialization(I2C1);
@@ -22,24 +23,30 @@ int main(void){
 	ssd1306_SetCursor(2,0);
 	ssd1306_WriteString("Meow", Font_16x26, White);
 	ssd1306_UpdateScreen();
-  delayMs(1000);
+  delayMs(5000);
 	Keypad_Pin_Init();
+	ssd1306_Fill(Black);
+	ssd1306_SetCursor(2,0);
+	ssd1306_UpdateScreen();
+	
 	while(1){
-		for(counter = 0; counter < 3; counter++){
-			temp = keypad_scan();
-			if(temp == 0xFF){
-				delayMs(100);
-				continue;
-			}
-			message[(sizeof(char) * counter)] = keypad_scan();
-			delayMs(1000);
-		}
 		
-		ssd1306_Fill(Black);
+		temp = keypad_scan();
+		
+		if(temp == 0xFF){
+			delayMs(100);
+		}
+		if(temp != last){
+			message[(sizeof(char) * counter)] = keypad_scan();
+			counter++;
+			delayMs(100);
+		}
+
+		//ssd1306_Fill(Black);
 		ssd1306_SetCursor(2,0);
 		ssd1306_WriteString(message, Font_16x26, White);
 		ssd1306_UpdateScreen();
-		delayMs(1000);
+		
 	}
 
 }

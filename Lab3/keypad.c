@@ -30,13 +30,13 @@ void delayMs(int timeInMs){
 
 unsigned char keypad_scan(void){
 	
-	unsigned char key_mapping[4][4] = {'1', '2', '3', 'A', 
+	volatile unsigned char key_mapping[4][4] = {'1', '2', '3', 'A', 
 																	 '4', '5', '6', 'B', 
 																	 '7', '8', '9', 'C', 
 																	 '*', '0', '#', 'D'};
 	volatile int i = 0;
 	int rows[] = {0, 1, 2, 3};
-	int cols[] = {4, 10, 11, 12};
+	volatile int cols[] = {4, 10, 11, 12};
 	unsigned char key = 0xFF;
 	int colPressed = 0;
 	
@@ -81,7 +81,7 @@ unsigned char keypad_scan(void){
 }
 
 void Keypad_Pin_Init(void){
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;  
-	  GPIOC->MODER &= ~(1|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<10)|(1<<11)|(1<<12));
+		RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;  
+	  GPIOC->MODER &= ~(0x03F003FF);
     GPIOC->MODER |= (0x00000055);
 }
