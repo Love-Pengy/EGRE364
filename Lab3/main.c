@@ -10,11 +10,12 @@
 int main(void){
 	
 	volatile int i;
-	volatile char message[64]="";
+	char message[8]="";
 	volatile int counter = 0;
 	volatile char oneMessage;
 	volatile char temp; 
-	volatile char last; 
+	volatile char last;
+	char tempMessage[8]="";
 	System_Clock_Init(); // Switch System Clock = 80 MHz
 	I2C_GPIO_init();
 	I2C_Initialization(I2C1);
@@ -36,10 +37,24 @@ int main(void){
 		if(temp == 0xFF){
 			delayMs(100);
 		}
-		else if(temp != last){
+		else{
+			if(strlen(message) == 8){
+				strcpy(tempMessage, message);
+				for(i = 0; i < 8; i++){
+					if(i == 0){
+						message[i] = temp;
+					}
+					else{
+						message[i] = tempMessage[i];
+					}
+				}
+				delayMs(100);
+			}
+			else{
 			message[(sizeof(char) * counter)] = temp;
 			counter++;
 			delayMs(100);
+			}
 		}
 		
 		//ssd1306_Fill(Black);

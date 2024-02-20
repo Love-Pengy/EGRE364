@@ -69,12 +69,14 @@ unsigned char keypad_scan(void){
 		GPIOC->ODR |= outputMask;
 		GPIOC->ODR &= ~(1<<rows[i]);
 		delayMs(5);
-		if((GPIOC->IDR & (1<<cols[i])) == 0){
+		if((GPIOC->IDR & (1<<cols[colPressed])) == 0){
 			key = key_mapping[i][colPressed];
-			return(key);
+			break;
 		}
 		delayMs(20);
 		
+	}
+	while((GPIOC->IDR & (1<<cols[colPressed])) == 0){
 	}
 	return(key);
 	
