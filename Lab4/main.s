@@ -19,6 +19,7 @@
 
 ; Green LED <--> PA.5
 LED_PIN	EQU	5
+CHANGE EQU 1
 	
 	AREA    main, CODE, READONLY
 	EXPORT	__main				; make __main visible to linker
@@ -32,46 +33,79 @@ __main	PROC
 	ORR r1, r1, #RCC_AHB2ENR_GPIOAEN
 	STR r1, [r0, #RCC_AHB2ENR]
 	
-	; Enable the clock to GPIO port B
-	;LDR r0, =RCC_BASE
-	;LDR r1, [r0, #RCC_AHB2ENR]
-	;ORR r1, r1, #RCC_AHB2ENR_GPIOBEN
-	;STR r1, [r0, #RCC_AHB2ENR]
+	; Enable the clock to GPIO port C
+	LDR r2, =RCC_BASE
+	LDR r3, [r2, #RCC_AHB2ENR]
+	ORR r3, r3, #RCC_AHB2ENR_GPIOCEN
+	STR r3, [r2, #RCC_AHB2ENR]
 	
-	
-	; MODE: 00: Input mode, 01: General purpose output mode
-    ;       10: Alternate function mode, 11: Analog mode (reset state)
+	; Program the port A mode register (MODER) to set Pin 5 as output
+	; bic is &= ~
 	LDR r0, =GPIOA_BASE
 	LDR r1, [r0, #GPIO_MODER]
-
-
-	; bic is &= ~
 	BIC r1, r1, #(3<<(2*LED_PIN))
 	ORR r1, r1, #(1<<(2*LED_PIN))
 	STR r1, [r0, #GPIO_MODER]
 
+	;; Program GPIOC->MODER to set the mode of Pin PC 13 as input
+	LDR r2, =GPIOC_BASE
+	LDR r3, [r2, #GPIO_MODER]
+	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
+	ORR r3, r3, #0
+	STR r3, [r2, #GPIO_MODER]
 
-	; optyper 
-	LDR r0, [r0, #GPIO_OTYPER]
-	BIC r1, r1, #(3<<((5*LED_PIN)+1))
+	; Program the port A output type register (OTYPER) to set Pin 5 as push-pull
+	LDR r0, =GPIOA_BASE
+	LDR r1, [r0, #GPIO_OTYPER]
+	BIC r1, r1, #(1<<(LED_PIN))
 	ORR r1, r1, #0
 	STR r1, [r0, #GPIO_OTYPER]
 	
-	;pupdr for the LED
+	;Program the port A pull-up/pull-down register (PUPDR) to set Pin 5 as no-pull-up no pull-down.
+	LDR r0, =GPIOA_BASE
+	LDR r1, [r0, #GPIO_PUPDR]
 	BIC r1, r1, #(3<<(2*LED_PIN))
 	ORR r1, r1, #0
 	STR r1, [r0, #GPIO_PUPDR]
 	
-	; turn on the led
+	;Program GPIOC->PUPDR to set the pull-up/pull-down setting of Pin PC 13 as no pull-up no pull-down
+	LDR r2, =GPIOC_BASE
+	LDR r3, [r2, #GPIO_PUPDR]
+	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
+	ORR r3, r3, #0
+	STR r3, [r2, #GPIO_PUPDR]
+	
+	; program the port A output data register (ODR) to set the output of Pin 5 to 1 or 0, which enables or disables the LED, respectively.
+	LDR r0, =GPIOA_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1,#(1<<LED_PIN)
-	ORR r1, r1, #(1<<LED_PIN)
+	BIC r1, r1, #(1<<(LED_PIN))
+	ORR r1, r1, #(1<<(LED_PIN))
 	STR r1, [r0, #GPIO_ODR]
   
   
-  
-  
-DEADLOOP b DEADLOOP     		; dead loop & program hangs here
+	LDR r0, =GPIOA_BASE
+	LDR r1, [r0, #GPIO_ODR]
+
+	LDR r2, =GPIOC_BASE
+	LDR r3, [r2, #GPIO_IDR]
+	
+
+loop_forever
+loop  
+	
+	AND r4,r3,GPIO_IDR_IDR_13
+	
+	CMP CHANGE,#1
+	
+	EOR	r5,r1,#(1<<(LED_PIN)) 
+	LDR CHANGE,#0
+ 
+ 
+	LDR CHANGE,#1
+ 
+	B loop_forever
+
+DEADLOOP B DEADLOOP     		; dead loop & program hangs here
 
 	ENDP
 					
