@@ -13,13 +13,12 @@
 ;           http:;www.eece.maine.edu/~zhu/book
 ;*******************************************************************************
 
-
 	INCLUDE core_cm4_constants.s		; Load Constant Definitions
 	INCLUDE stm32l476xx_constants.s      
 
 ; Green LED <--> PA.5
 LED_PIN	EQU	5
-CHANGE EQU 1
+change DCD 1
 	
 	AREA    main, CODE, READONLY
 	EXPORT	__main				; make __main visible to linker
@@ -75,42 +74,42 @@ __main	PROC
 	ORR r3, r3, #0
 	STR r3, [r2, #GPIO_PUPDR]
 	
-	; program the port A output data register (ODR) to set the output of Pin 5 to 1 or 0, which enables or disables the LED, respectively.
+	; Program the port A output data register (ODR) to set the output of Pin 5 to 1 or 0, which enables or disables the LED, respectively.
 	LDR r0, =GPIOA_BASE
 	LDR r1, [r0, #GPIO_ODR]
 	BIC r1, r1, #(1<<(LED_PIN))
 	ORR r1, r1, #(1<<(LED_PIN))
 	STR r1, [r0, #GPIO_ODR]
   
-  
-	LDR r0, =GPIOA_BASE
-	LDR r1, [r0, #GPIO_ODR]
-
-	LDR r2, =GPIOC_BASE
-	LDR r3, [r2, #GPIO_IDR]
+	;Prelab part: GPIOA->ODR |= GPIO_ODR_ODR_5;
+	;LDR r0, =GPIOA_BASE
+	;LDR r1, [r0, #GPIO_ODR]
+	;ORR r1, r1, #(1<<(LED_PIN))
+	;STR r1, [r0, #GPIO_ODR]
 	
-
-loop_forever
-loop  
+	;Code for make check if the LED is on and off
+	LDR r4, =change
+	LDR r4, [r4]
 	
-	AND r4,r3,GPIO_IDR_IDR_13
+while_1
+while_2	LDR r2, =GPIOC_BASE
+		LDR r3, [r2, #GPIO_IDR]
+		CMP r3, #GPIO_IDR_IDR_13
+		BNE while_break
+		CMP r4,#1
+		BNE i_f
+		EOR	r1,r1,#(1<<(LED_PIN)) 
+		STR r1, [r0, #GPIO_ODR]
+		MOV r4,#0x0
 	
-	CMP CHANGE,#1
+i_f	B while_2
 	
-	EOR	r5,r1,#(1<<(LED_PIN)) 
-	LDR CHANGE,#0
- 
- 
-	LDR CHANGE,#1
- 
-	B loop_forever
+while_break	MOV r4,#0x1
+	
+	B while_1
 
-DEADLOOP B DEADLOOP     		; dead loop & program hangs here
-
-	ENDP
-					
+	ENDP		
 	ALIGN			
-
 	AREA    myData, DATA, READWRITE
 	ALIGN
 array	DCD   1, 2, 3, 4

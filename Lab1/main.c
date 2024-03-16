@@ -41,10 +41,6 @@ GPIOC->PUPDR |= 0x0;
 GPIOA->ODR &= ~GPIO_ODR_OD5;
 GPIOA->ODR |= GPIO_ODR_OD5;
 
- 
-
-
-
 	while(1){
 		while(GPIOC->IDR & GPIO_IDR_IDR_13){
 			if(eligChange){
@@ -56,10 +52,4 @@ GPIOA->ODR |= GPIO_ODR_OD5;
 	}
 
 }
-
-
-	
-	
-
-
 
