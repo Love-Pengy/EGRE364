@@ -94,8 +94,8 @@ __main	PROC
 while_1
 while_2	LDR r2, =GPIOC_BASE
 		LDR r3, [r2, #GPIO_IDR]
-		CMP r3, #GPIO_IDR_IDR_13
-		BNE while_break
+		TST r3, #GPIO_IDR_IDR_13
+		BEQ while_break
 		CMP r4,#1
 		BNE i_f
 		EOR	r1,r1,#(1<<(LED_PIN)) 

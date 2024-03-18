@@ -50,6 +50,5 @@ GPIOA->ODR |= GPIO_ODR_OD5;
 		}
 		eligChange = 1;
 	}
-
 }
 
