@@ -15,3 +15,12 @@
 *       + Half step has a 45 degree turn for each pulse
 *       + combination of wave and full step.  It swaps back and foth between the two. THe full step to get the magenet halfway and then the wave step to get it all the way towards a pole
 * */
+
+
+/*
+*   LECTURE NOTES:
+*   rcc_init is enaebling the clocks for the gpio that we are trying to use
+*   gpio_init initializes the types of the gpio and the pins themselves
+*   ldr can move anything mov can have conflicts // always use ldr 
+*
+* */
