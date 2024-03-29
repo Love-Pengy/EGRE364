@@ -16,12 +16,12 @@
 	INCLUDE core_cm4_constants.s		; Load Constant Definitions
 	INCLUDE stm32l476xx_constants.s      
 
-;;PB12 = 4
-; PB13 = 3
-;PB14 = 2
-;PB15 = 1
+;;PC0 = A
+; PB1 = C
+;PB2 = B
+;PB3 = D
 LED_PIN	EQU	5
-delayAmt DCD 2000
+delayAmt DCD 2
 	
 	AREA    main, CODE, READONLY
 	EXPORT	__main				; make __main visible to linker
@@ -30,7 +30,8 @@ delayAmt DCD 2000
 
 Delay PROC
 	push {r1}
-	ldr r1, =delayAmt ;initial value for loop counter
+	; this can be a min of 1000
+	MOV r1, #1000 ;initial value for loop counter
 continue NOP ;execute two no-operation instructions
 	NOP
 	subs r1, #1
@@ -53,24 +54,24 @@ RCC_Init PROC
 ; PB12-15
 GPIO_Init PROC
 	PUSH {R0,R1,R2}
-	LDR R0, =GPIOB_BASE
+	LDR R0, =GPIOC_BASE
 	LDR R1, [R0,#GPIO_MODER]
 	LDR R2, =0x0FF
-	BIC R1,R1,R2, LSL #24
+	BIC R1,R1,R2
 	LDR R2, =0x55; output 01
-	ORR R1, R1, R2, LSL #24
+	ORR R1, R1, R2
 	STR R1, [R0,#GPIO_MODER]
 	LDR R1, [R0,#GPIO_OSPEEDR]
 	LDR R2, =0x0FF
-	ORR R1, R1, R2, LSL #24
+	ORR R1, R1, R2
 	STR R1, [R0,#GPIO_OSPEEDR]
 	LDR R1, [R0,#GPIO_PUPDR]
 	LDR R2, =0x0FF
-	BIC R1,R1,R2, LSL #24
+	BIC R1,R1,R2
 	STR R1, [R0,#GPIO_PUPDR]
 	LDR R1, [R0,#GPIO_OTYPER]
 	LDR R2, =0x0F
-	BIC R1, R1, R2, LSL #12
+	BIC R1, R1, R2
 	STR R1, [R0,#GPIO_OTYPER]
 	POP {R2,R1,R0}
 	BX LR
@@ -114,46 +115,62 @@ __main	PROC
 	
 	BL RCC_Init ; init RCC
 	BL GPIO_Init ; init GPIO
-	LDR R0,=GPIOB_BASE
+	LDR R0,=GPIOC_BASE
 	ADR R1, seq1; full step
 	MOV R5, R1; move the address of r1 into r5
 	
 	;checker for full or half step
 	LDR r6, =start_mode
-	
+	MOV r12, #1 ;this is the current sequence variable 
+	MOV r11, #1 ; this is the variable that signifies if we can change
 	
 loop
 	LDR r6, =GPIOC_BASE
 	LDR r7, [r6, #GPIO_IDR]
 	TST r7, #GPIO_IDR_IDR_13
-	BNE switch_mode
+	BNE set_checker
+	BL check_switch
 	
+array_handler
 	LDRB R2,[R1],#1; load single byte from r1 into r2 and then increment address
 	CBNZ R2,next; if r2 is 0 go to next 
 	MOV R1, R5 ; sets r1 to the original array
 	B loop
 	
-switch_mode  EOR r6, r6
-	TST r6, #1
+set_checker
+	MOV r11, #1
+	B array_handler
+	
+check_switch
+	CMP r11, #1
+	BNE loop
+	BEQ switch_mode
+	BX LR 
+	
+switch_mode  
+	MOV r11, #0
+	EOR r12, r12, #1
+	TST r12, #1
 	BNE set_seq_1
 	BEQ set_seq_2
 	B loop
+	
 set_seq_1
 	ADR R1, seq1; full step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
+
 set_seq_2
 
-	ADR R1, seq5; full step
+	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
-
-
+	
 next
 	LDR R3,[R0,#GPIO_ODR] ; load r3 with value from odr
 	LDR R4,=0x0F
-	BIC R3,R3,R4, LSL #12 ; clear byte starting from 12 of r3
-	ORR R3,R3,R2,LSL #12 ; set r3 to r2 
+	BIC R3,R3,R4 ; clear byte starting from 12 of r3
+	ORR R3,R3,R2 ; set r3 to r2 
 	STR R3, [R0,#GPIO_ODR] ; store into r0's odr r3
 	BL Delay
 	B loop
