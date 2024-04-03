@@ -81,40 +81,42 @@ start_mode DCB 1
 
 
 __main	PROC
-	MOV r8, #1000
-	
+
 	; Enable the clock to GPIO port C
-	LDR r2, =RCC_BASE
-	LDR r3, [r2, #RCC_AHB2ENR]
-	ORR r3, r3, #RCC_AHB2ENR_GPIOCEN
-	STR r3, [r2, #RCC_AHB2ENR]
+	LDR R0, =RCC_BASE
+	LDR R1, [R0, #RCC_AHB2ENR]
+	ORR R1, R1, #RCC_AHB2ENR_GPIOCEN
+	STR R1, [R0, #RCC_AHB2ENR]
 	
 	;; Program GPIOC->MODER to set the mode of Pin PC 13 as input
-	LDR r2, =GPIOC_BASE
-	LDR r3, [r2, #GPIO_MODER]
-	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
-	ORR r3, r3, #0
-	STR r3, [r2, #GPIO_MODER]
+	LDR R0, =GPIOC_BASE
+	LDR R1, [R0, #GPIO_MODER]
+	BIC R1, R1, #(3<<(5*(LED_PIN)+1))
+	ORR R1, R1, #0
+	STR R1, [R0, #GPIO_MODER]
 	
 	;Program GPIOC->PUPDR to set the pull-up/pull-down setting of Pin PC 13 as no pull-up no pull-down
-	LDR r2, =GPIOC_BASE
-	LDR r3, [r2, #GPIO_PUPDR]
-	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
-	ORR r3, r3, #0
-	STR r3, [r2, #GPIO_PUPDR]
+	LDR R0, =GPIOC_BASE
+	LDR R1, [R0, #GPIO_PUPDR]
+	BIC R1, R1, #(3<<(5*(LED_PIN)+1))
+	ORR R1, R1, #0
+	STR R1, [R0, #GPIO_PUPDR]
 	
 	
 	BL RCC_Init ; init RCC
 	BL GPIO_Init ; init GPIO
 	LDR R0,=GPIOC_BASE
-	ADR R1, seq1; full step
+	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	
-	;checker for full or half step
+	;checker for full or half step and the reverse as well
 	LDR r6, =start_mode
 	MOV r12, #1 ;this is the current sequence variable 
 	MOV r11, #1 ; this is the variable that signifies if we can change
-	
+	MOV r8, #2000; %delay value 
+	MOV R9, #1; to deterime speed up and slow down
+	MOV R10, #1 ; to check to reverse or not
+
 loop
 	LDR r6, =GPIOC_BASE
 	LDR r7, [r6, #GPIO_IDR]
@@ -147,16 +149,25 @@ switch_mode
 	B loop
 	
 set_seq_1
-	ADR R1, seq1; full step
+	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 
 set_seq_2
-
-	ADR R1, seq5; half step
+	ADR R1, seq1; full step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 	
+set_seq_3
+	ADR R1, seq6; reverse half step 
+	MOV R5, R1; move the address of r1 into r5
+	B loop
+	
+set_seq_4
+	ADR R1, seq2; reverse full step 
+	MOV R5, R1; move the address of r1 into r5
+	B loop
+
 next
 	LDR R3,[R0,#GPIO_ODR] ; load r3 with value from odr
 	LDR R4,=0x0F
@@ -164,9 +175,22 @@ next
 	ORR R3,R3,R2 ; set r3 to r2 
 	STR R3, [R0,#GPIO_ODR] ; store into r0's odr r3
 	BL Delay
+	CMP r9,#1 ; to check if we want speed up or slow down
+	BEQ speedup
+	BNE slowdown
 	B loop
-
-
+	
+speedup ; to speed up the motor by decreasing the size of register 8
+	SUBS r8,r8,#1
+	TST r8,#1000
+	MOVEQ r9,#0
+	B loop
+	
+slowdown ; to slow down the motor by increasing the size of register 8
+	ADDS r8,r8,#1
+	TST r8, #2000
+	MOVEQ r9,#1
+	B loop
 	ENDP
 		
 Delay PROC
@@ -179,9 +203,7 @@ continue NOP ;execute two no-operation instructions
 	pop{r1}
 	bx lr
 	ENDP
-		
 	
-		
 	ALIGN			
 	AREA    myData, DATA, READWRITE
 	ALIGN
