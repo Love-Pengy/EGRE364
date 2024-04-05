@@ -27,9 +27,6 @@ delayAmt DCD 2
 	EXPORT	__main				; make __main visible to linker
 	ENTRY
 	
-
-
-	
 ; enable clocks for GPIOC
 RCC_Init PROC
 	PUSH {R0,R1}
@@ -67,8 +64,6 @@ GPIO_Init PROC
 	BX LR
 	ENDP
 
-
-	
 ;2_ in front of these allocates these values in binary
 seq1 DCB 2_0101,2_0110,2_1010,2_1001,2_0000 ; full step
 seq2 DCB 2_0101,2_1001,2_1010,2_0110,2_0000 ; reverse full step 
@@ -78,7 +73,6 @@ seq5 DCB 2_0001,2_0101,2_0100,2_0110,2_0010,2_1010,2_1000,2_1001,2_0000 ; half s
 seq6 DCB 2_0001,2_1001,2_1000,2_1010,2_0010,2_0110,2_0100,2_0101,2_0000 ; reverse half step
 
 start_mode DCB 1
-
 
 __main	PROC
 
@@ -105,103 +99,128 @@ __main	PROC
 	
 	BL RCC_Init ; init RCC
 	BL GPIO_Init ; init GPIO
-	LDR R0,=GPIOC_BASE
 	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	
 	;checker for full or half step and the reverse as well
-	LDR r6, =start_mode
-	MOV r12, #1 ;this is the current sequence variable 
-	MOV r11, #1 ; this is the variable that signifies if we can change
-	MOV r8, #2000; %delay value 
+	LDR R6, =start_mode
+	MOV R12, #1 ;this is the current sequence variable 
+	MOV R11, #1 ; this is the variable that signifies if we can change
+	MOV R8, #2000; %delay value 
 	MOV R9, #1; to deterime speed up and slow down
 	MOV R10, #1 ; to check to reverse or not
-
+	MOV R4, #1 ;switch revolution  
+	
 loop
-	LDR r6, =GPIOC_BASE
-	LDR r7, [r6, #GPIO_IDR]
-	TST r7, #GPIO_IDR_IDR_13
+	LDR R6, =GPIOC_BASE
+	LDR R7, [R6, #GPIO_IDR]
+	TST R7, #GPIO_IDR_IDR_13
 	BNE set_checker
 	BL check_switch
-	
+
 array_handler
 	LDRB R2,[R1],#1; load single byte from r1 into r2 and then increment address
 	CBNZ R2,next; if r2 is 0 go to next 
+		BL Delay_2
+	B check_switch
+
 	MOV R1, R5 ; sets r1 to the original array
 	B loop
-	
+
 set_checker
-	MOV r11, #1
+	MOV R11, #1
 	B array_handler
-	
+
 check_switch
-	CMP r11, #1
+	CMP R11, #1
 	BNE loop
 	BEQ switch_mode
 	BX LR 
-	
+
 switch_mode  
-	MOV r11, #0
-	EOR r12, r12, #1
-	TST r12, #1
+	MOV R11, #0
+	EOR R12, R12, #1
+	TST R12, #1
 	BNE set_seq_1
 	BEQ set_seq_2
 	B loop
-	
+
 set_seq_1
-	ADR R1, seq5; half step
+	TST R4,#1
+	BNE seq_5
+	BEQ seq_6
+	
+seq_5 ADR R1, seq5; half step
+	MOV R5, R1; move the address of r1 into r5
+	B loop
+
+seq_6 ADR R1, seq6; reverse half step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 
 set_seq_2
-	ADR R1, seq1; full step
+	TST R4,#1
+	BNE seq_1
+	BEQ seq_2
+	
+seq_1 ADR R1, seq1; full step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 	
-set_seq_3
-	ADR R1, seq6; reverse half step 
-	MOV R5, R1; move the address of r1 into r5
-	B loop
-	
-set_seq_4
-	ADR R1, seq2; reverse full step 
+seq_2 ADR R1, seq2; reverse full step 
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 
 next
 	LDR R3,[R0,#GPIO_ODR] ; load r3 with value from odr
-	LDR R4,=0x0F
-	BIC R3,R3,R4 ; clear byte starting from 12 of r3
+	BIC R3,R3,#0x0F ; clear byte starting from 12 of r3
 	ORR R3,R3,R2 ; set r3 to r2 
 	STR R3, [R0,#GPIO_ODR] ; store into r0's odr r3
 	BL Delay
-	CMP r9,#1 ; to check if we want speed up or slow down
+	CMP R9,#1 ; to check if we want speed up or slow down
+	MOVEQ R4,#1
+	MOVNE R4,#0
 	BEQ speedup
 	BNE slowdown
 	B loop
-	
+
 speedup ; to speed up the motor by decreasing the size of register 8
-	SUBS r8,r8,#1
-	TST r8,#1000
-	MOVEQ r9,#0
+	SUBS R8,R8,#1
+	TST R8,#1000
+	MOVEQ R9,#0
+	TST R8,#1000
+	MOVEQ R4,#0
 	B loop
-	
+
 slowdown ; to slow down the motor by increasing the size of register 8
-	ADDS r8,r8,#1
-	TST r8, #2000
-	MOVEQ r9,#1
+	ADDS R8,R8,#1
+	TST R8, #2000
+	MOVEQ R9,#1
+	TST R8,#2000
+	MOVEQ R4,#1
 	B loop
 	ENDP
-		
+
 Delay PROC
-	push{r1}
-	MOV r1, r8
+	push{R1}
+	MOV R1, R8
 continue NOP ;execute two no-operation instructions
 	NOP
-	subs r1, #1
+	subs R1, #1
 	bne continue ; if not equal 
-	pop{r1}
-	bx lr
+	pop{R1}
+	bx LR
+	ENDP
+		
+Delay_2 PROC
+	push{R1}
+	ldr r1, =2000
+continue_2 NOP ;execute two no-operation instructions
+	NOP
+	subs R1, #1
+	bne continue_2 ; if not equal 
+	pop{R1}
+	bx LR
 	ENDP
 	
 	ALIGN			

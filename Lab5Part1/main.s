@@ -27,19 +27,6 @@ delayAmt DCD 2
 	EXPORT	__main				; make __main visible to linker
 	ENTRY
 	
-
-Delay PROC
-	push {r1}
-	; this can be a min of 1000
-	MOV r1, #1000 ;initial value for loop counter
-continue NOP ;execute two no-operation instructions
-	NOP
-	subs r1, #1
-	bne continue ; if not equal 
-	pop {r1}
-	bx lr
-	ENDP
-	
 ; enable clocks for GPIOC
 RCC_Init PROC
 	PUSH {R0,R1}
@@ -77,8 +64,6 @@ GPIO_Init PROC
 	BX LR
 	ENDP
 
-
-	
 ;2_ in front of these allocates these values in binary
 seq1 DCB 2_0101,2_0110,2_1010,2_1001,2_0000 ; full step
 seq2 DCB 2_0101,2_1001,2_1010,2_0110,2_0000 ; reverse full step 
@@ -89,83 +74,94 @@ seq6 DCB 2_0001,2_1001,2_1000,2_1010,2_0010,2_0110,2_0100,2_0101,2_0000 ; revers
 
 start_mode DCB 1
 
-
 __main	PROC
-	
+
 	; Enable the clock to GPIO port C
-	LDR r2, =RCC_BASE
-	LDR r3, [r2, #RCC_AHB2ENR]
-	ORR r3, r3, #RCC_AHB2ENR_GPIOCEN
-	STR r3, [r2, #RCC_AHB2ENR]
+	LDR R0, =RCC_BASE
+	LDR R1, [R0, #RCC_AHB2ENR]
+	ORR R1, R1, #RCC_AHB2ENR_GPIOCEN
+	STR R1, [R0, #RCC_AHB2ENR]
 	
 	;; Program GPIOC->MODER to set the mode of Pin PC 13 as input
-	LDR r2, =GPIOC_BASE
-	LDR r3, [r2, #GPIO_MODER]
-	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
-	ORR r3, r3, #0
-	STR r3, [r2, #GPIO_MODER]
+	LDR R0, =GPIOC_BASE
+	LDR R1, [R0, #GPIO_MODER]
+	BIC R1, R1, #(3<<(5*(LED_PIN)+1))
+	ORR R1, R1, #0
+	STR R1, [R0, #GPIO_MODER]
 	
 	;Program GPIOC->PUPDR to set the pull-up/pull-down setting of Pin PC 13 as no pull-up no pull-down
-	LDR r2, =GPIOC_BASE
-	LDR r3, [r2, #GPIO_PUPDR]
-	BIC r3, r3, #(3<<(5*(LED_PIN)+1))
-	ORR r3, r3, #0
-	STR r3, [r2, #GPIO_PUPDR]
+	LDR R0, =GPIOC_BASE
+	LDR R1, [R0, #GPIO_PUPDR]
+	BIC R1, R1, #(3<<(5*(LED_PIN)+1))
+	ORR R1, R1, #0
+	STR R1, [R0, #GPIO_PUPDR]
 	
 	
 	BL RCC_Init ; init RCC
 	BL GPIO_Init ; init GPIO
 	LDR R0,=GPIOC_BASE
-	ADR R1, seq1; full step
+	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	
-	;checker for full or half step
-	LDR r6, =start_mode
-	MOV r12, #1 ;this is the current sequence variable 
-	MOV r11, #1 ; this is the variable that signifies if we can change
+	;checker for full or half step and the reverse as well
+	LDR R6, =start_mode
+	MOV R12, #1 ;this is the current sequence variable 
+	MOV R11, #1 ; this is the variable that signifies if we can change
+	MOV R8, #2000; %delay value 
+	MOV R9, #1; to deterime speed up and slow down
+	MOV R10, #1 ; to check to reverse or not
 	
 loop
-	LDR r6, =GPIOC_BASE
-	LDR r7, [r6, #GPIO_IDR]
-	TST r7, #GPIO_IDR_IDR_13
+	LDR R6, =GPIOC_BASE
+	LDR R7, [R6, #GPIO_IDR]
+	TST R7, #GPIO_IDR_IDR_13
 	BNE set_checker
 	BL check_switch
-	
+
 array_handler
 	LDRB R2,[R1],#1; load single byte from r1 into r2 and then increment address
 	CBNZ R2,next; if r2 is 0 go to next 
 	MOV R1, R5 ; sets r1 to the original array
 	B loop
-	
+
 set_checker
-	MOV r11, #1
+	MOV R11, #1
 	B array_handler
-	
+
 check_switch
-	CMP r11, #1
+	CMP R11, #1
 	BNE loop
 	BEQ switch_mode
 	BX LR 
-	
+
 switch_mode  
-	MOV r11, #0
-	EOR r12, r12, #1
-	TST r12, #1
+	MOV R11, #0
+	EOR R12, R12, #1
+	TST R12, #1
 	BNE set_seq_1
 	BEQ set_seq_2
 	B loop
-	
+
 set_seq_1
-	ADR R1, seq1; full step
+	ADR R1, seq5; half step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
 
 set_seq_2
-
-	ADR R1, seq5; half step
+	ADR R1, seq1; full step
 	MOV R5, R1; move the address of r1 into r5
 	B loop
-	
+
+set_seq_3
+	ADR R1, seq6; reverse half step 
+	MOV R5, R1; move the address of r1 into r5
+	B loop
+
+set_seq_4
+	ADR R1, seq2; reverse full step 
+	MOV R5, R1; move the address of r1 into r5
+	B loop
+
 next
 	LDR R3,[R0,#GPIO_ODR] ; load r3 with value from odr
 	LDR R4,=0x0F
@@ -173,10 +169,35 @@ next
 	ORR R3,R3,R2 ; set r3 to r2 
 	STR R3, [R0,#GPIO_ODR] ; store into r0's odr r3
 	BL Delay
+	CMP R9,#1 ; to check if we want speed up or slow down
+	BEQ speedup
+	BNE slowdown
 	B loop
 
+speedup ; to speed up the motor by decreasing the size of register 8
+	SUBS R8,R8,#1
+	CMP R8,#1000
+	MOVEQ R9,#0
+	B loop
 
-	ENDP		
+slowdown ; to slow down the motor by increasing the size of register 8
+	ADDS R8,R8,#1
+	CMP R8, #2000
+	MOVEQ R9,#1
+	B loop
+	ENDP
+
+Delay PROC
+	push{R1}
+	MOV R1, R8
+continue NOP ;execute two no-operation instructions
+	NOP
+	subs R1, #1
+	bne continue ; if not equal 
+	pop{R1}
+	bx LR
+	ENDP
+	
 	ALIGN			
 	AREA    myData, DATA, READWRITE
 	ALIGN
