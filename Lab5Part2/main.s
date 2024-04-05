@@ -120,10 +120,8 @@ loop
 
 array_handler
 	LDRB R2,[R1],#1; load single byte from r1 into r2 and then increment address
-	CBNZ R2,next; if r2 is 0 go to next 
-		BL Delay_2
+	CBNZ R2,next; if r2 is not 0 go to next 
 	B check_switch
-
 	MOV R1, R5 ; sets r1 to the original array
 	B loop
 
@@ -214,7 +212,7 @@ continue NOP ;execute two no-operation instructions
 		
 Delay_2 PROC
 	push{R1}
-	ldr r1, =2000
+	ldr R1, =200
 continue_2 NOP ;execute two no-operation instructions
 	NOP
 	subs R1, #1
