@@ -1,1 +1,3 @@
-# Labs For EGRE364
+# EGRE364
+
+Both the assembly and C based labs for EGRE 364
